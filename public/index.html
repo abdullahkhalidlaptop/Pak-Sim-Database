@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Database Lookup Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background: radial-gradient(circle at top left, #0f172a, #020617);
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body class="text-slate-100 flex flex-col items-center justify-start p-4 sm:p-8">
+
+  <header class="w-full max-w-3xl text-center my-8">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-widest mb-4">
+      Protected Lookup System
+    </div>
+    <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">
+      Information Finder
+    </h1>
+    <p class="text-slate-400 text-sm sm:text-base mt-2">
+      Encrypted anti-bot search portal
+    </p>
+  </header>
+
+  <main class="w-full max-w-3xl space-y-6">
+
+    <form id="searchForm" class="space-y-4">
+      <div class="relative flex items-center">
+        <input
+          type="text"
+          id="queryInput"
+          placeholder="Enter query (e.g., 3660119097673)..."
+          class="w-full py-4 pl-5 pr-32 bg-slate-900/80 border border-slate-700/60 rounded-2xl backdrop-blur-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-xl"
+          required
+        />
+        <button
+          type="submit"
+          id="submitBtn"
+          class="absolute right-2 px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-medium text-sm rounded-xl transition-all shadow-lg hover:shadow-indigo-500/25 flex items-center gap-2"
+        >
+          <span id="btnText">Search</span>
+          <div id="btnSpinner" class="hidden w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        </button>
+      </div>
+
+      <!-- Cloudflare Turnstile Widget -->
+      <div class="flex justify-center">
+        <div 
+          class="cf-turnstile" 
+          data-sitekey="YOUR_CLOUDFLARE_SITE_KEY" 
+          data-theme="dark"
+          data-callback="onTurnstileSuccess"
+          data-expired-callback="onTurnstileExpired"
+        ></div>
+      </div>
+    </form>
+
+    <div id="errorAlert" class="hidden p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center"></div>
+
+    <div id="resultsContainer" class="space-y-4"></div>
+
+  </main>
+
+  <script>
+    let turnstileToken = '';
+
+    function onTurnstileSuccess(token) { turnstileToken = token; }
+    function onTurnstileExpired() { turnstileToken = ''; }
+
+    const form = document.getElementById('searchForm');
+    const queryInput = document.getElementById('queryInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const btnSpinner = document.getElementById('btnSpinner');
+    const errorAlert = document.getElementById('errorAlert');
+    const resultsContainer = document.getElementById('resultsContainer');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const q = queryInput.value.trim();
+      if (!q) return;
+
+      if (!turnstileToken) {
+        errorAlert.textContent = "Please complete the security check first.";
+        errorAlert.classList.remove('hidden');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      btnText.textContent = "Searching...";
+      btnSpinner.classList.remove('hidden');
+      errorAlert.classList.add('hidden');
+      resultsContainer.innerHTML = '';
+
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(q)}&cf-turnstile-response=${encodeURIComponent(turnstileToken)}`);
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.error || 'Search failed.');
+
+        if (data.results && data.results.length > 0) {
+          renderResults(data.results);
+        } else {
+          showEmptyState();
+        }
+      } catch (err) {
+        errorAlert.textContent = err.message;
+        errorAlert.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+        btnText.textContent = "Search";
+        btnSpinner.classList.add('hidden');
+
+        if (window.turnstile) {
+          turnstile.reset();
+          turnstileToken = '';
+        }
+      }
+    });
+
+    function renderResults(results) {
+      resultsContainer.innerHTML = results.map((item, index) => `
+        <div class="p-6 bg-slate-900/60 border border-slate-800 backdrop-blur-md rounded-2xl shadow-xl space-y-4 transition-all hover:border-slate-700">
+          <div class="flex justify-between items-center border-b border-slate-800/80 pb-3">
+            <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Record #${index + 1}</span>
+            <button onclick="copyToClipboard('${escapeJs(JSON.stringify(item))}', this)" class="text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded-lg transition-all">
+              Copy JSON
+            </button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            ${createField('Name', item.name)}
+            ${createField('Phone', item.phone)}
+            ${createField('CNIC', item.cnic)}
+            ${createField('Address', item.address, true)}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function createField(label, value, fullWidth = false) {
+      return `
+        <div class="${fullWidth ? 'sm:col-span-2' : ''} bg-slate-950/40 border border-slate-800/60 p-3 rounded-xl flex justify-between items-center">
+          <div>
+            <div class="text-xs text-slate-500 font-medium">${label}</div>
+            <div class="text-sm text-slate-200 font-semibold mt-0.5">${value || 'N/A'}</div>
+          </div>
+          <button onclick="copyToClipboard('${escapeJs(value)}', this)" class="text-slate-500 hover:text-slate-300 p-1 rounded transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+          </button>
+        </div>
+      `;
+    }
+
+    function showEmptyState() {
+      resultsContainer.innerHTML = `
+        <div class="text-center py-12 bg-slate-900/30 border border-slate-800/50 rounded-2xl">
+          <p class="text-slate-400 text-sm">No records found matching your query.</p>
+        </div>
+      `;
+    }
+
+    function escapeJs(str) {
+      return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    function copyToClipboard(text, btn) {
+      navigator.clipboard.writeText(text);
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<span class="text-emerald-400 text-xs">Copied!</span>';
+      setTimeout(() => { btn.innerHTML = originalText; }, 1500);
+    }
+  </script>
+</body>
+</html>
