@@ -19,7 +19,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Validate token with Cloudflare
     const formData = new URLSearchParams();
     formData.append('secret', turnstileSecret);
     formData.append('response', token);
@@ -38,7 +37,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Proxy search request to backend
     const targetUrl = `https://pak-sim-info-black.vercel.app/search?q=${encodeURIComponent(q)}&api-key=${encodeURIComponent(apiKey)}`;
     const backendRes = await fetch(targetUrl);
     const data = await backendRes.json();
