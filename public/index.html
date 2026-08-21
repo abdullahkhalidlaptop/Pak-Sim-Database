@@ -45,13 +45,13 @@
     </div>
     
     <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-widest mb-2">
-      Protected System
+      Made By A.K
     </div>
     <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">
-      Information Finder
+      PAK SIM Information
     </h1>
     <p class="text-slate-400 text-xs sm:text-base mt-1">
-      Secure search portal
+      Latest 2023 Database
     </p>
   </header>
 
@@ -89,7 +89,7 @@
             type="text"
             id="cnicInput"
             inputmode="numeric"
-            placeholder="36401-7737144-9"
+            placeholder="36401-2345678-9"
             maxlength="15"
             class="w-full py-3.5 pl-4 pr-4 sm:pr-32 bg-slate-900 border border-slate-700/60 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-md font-mono text-base"
           />
@@ -104,7 +104,7 @@
             type="text"
             id="phoneInput"
             inputmode="numeric"
-            placeholder="304 7120451"
+            placeholder="301 23456789"
             maxlength="12"
             class="w-full py-3.5 pl-3 pr-4 sm:pr-32 bg-transparent text-slate-100 placeholder-slate-500 focus:outline-none font-mono text-base"
           />
@@ -359,26 +359,27 @@
 
     // Universal Mobile & Desktop File Downloader
     function triggerDownload(content, fileName, mimeType) {
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      
-      if (isMobile) {
-        // Data URI method works directly on iOS Safari & Mobile Chrome
-        const encodedData = `data:${mimeType};base64,` + btoa(unescape(encodeURIComponent(content)));
-        
+      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && typeof navigator.standalone !== 'undefined');
+
+      if (isIos) {
+        // iOS Safari handles downloads better via data URIs opened in a new tab
+        const encodedData = `data:${mimeType};charset=utf-8,` + encodeURIComponent(content);
         const link = document.createElement("a");
         link.href = encodedData;
-        link.download = fileName;
         link.target = "_blank";
+        link.download = fileName;
+        link.style.display = "none";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       } else {
-        // Standard Desktop Blob method
+        // Standard Desktop & Android (Chrome, Firefox, Edge, etc.)
         const blob = new Blob([content], { type: mimeType });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
         link.download = fileName;
+        link.style.display = "none";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -397,10 +398,11 @@
         `"${(r.address || '').replace(/"/g, '""')}"`
       ]);
 
-      const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\r\n");
+      // Added BOM \uFEFF so Excel correctly handles UTF-8 (Urdu/Arabic characters)
+      const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\r\n");
       const fileName = `search_results_${Date.now()}.csv`;
 
-      triggerDownload(csvContent, fileName, 'text/csv');
+      triggerDownload(csvContent, fileName, 'text/csv;charset=utf-8');
     }
 
     // PDF Download
@@ -429,11 +431,25 @@
       });
 
       const fileName = `search_results_${Date.now()}.pdf`;
+      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && typeof navigator.standalone !== 'undefined');
 
-      try {
-        doc.save(fileName);
-      } catch (e) {
-        doc.output('dataurlnewwindow');
+      if (isIos) {
+        // On iOS, open PDF in a new tab so the user can save it or share it
+        const pdfDataUri = doc.output('datauristring');
+        const link = document.createElement("a");
+        link.href = pdfDataUri;
+        link.target = "_blank";
+        link.download = fileName;
+        link.style.display = "none";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        try {
+          doc.save(fileName);
+        } catch (e) {
+          doc.output('dataurlnewwindow');
+        }
       }
     }
 
