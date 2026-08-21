@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Database Lookup Portal</title>
+  <title>Pak Sim Info Database</title>
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="/assets/icon.png" />
@@ -44,13 +44,13 @@
     </div>
     
     <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-widest mb-3">
-      Protected System
+      Made By A.K
     </div>
     <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">
-      Information Finder
+      Pak Sim Info Database
     </h1>
     <p class="text-slate-400 text-sm sm:text-base mt-2">
-      Secure search portal
+      Latest Database 2023
     </p>
   </header>
 
@@ -87,7 +87,7 @@
           <input
             type="text"
             id="cnicInput"
-            placeholder="36401-7737144-9"
+            placeholder="36401-2345678-9"
             maxlength="15"
             class="w-full py-4 pl-5 pr-32 bg-slate-900/80 border border-slate-700/60 rounded-2xl backdrop-blur-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-xl font-mono"
           />
@@ -101,7 +101,7 @@
           <input
             type="text"
             id="phoneInput"
-            placeholder="304 7120451"
+            placeholder="300 1234567"
             maxlength="12"
             class="w-full py-4 pl-4 pr-32 bg-transparent text-slate-100 placeholder-slate-500 focus:outline-none font-mono"
           />
@@ -177,7 +177,7 @@
       }
     }
 
-    // Dynamic CNIC Hyphenator: 36401-7737144-9
+    // Dynamic CNIC Hyphenator: 36123-1234567-8
     cnicInput.addEventListener('input', (e) => {
       let digits = e.target.value.replace(/\D/g, '').slice(0, 13);
       let formatted = '';
