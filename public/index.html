@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pak Sim Info</title>
+  <title>Database Lookup Portal</title>
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="/favicon.png" />
@@ -47,10 +47,10 @@
       Protected System
     </div>
     <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">
-      Pak SIM Info Lookup
+      Information Finder
     </h1>
     <p class="text-slate-400 text-sm sm:text-base mt-2">
-      Latest Database 2023
+      Secure search portal
     </p>
   </header>
 
@@ -62,7 +62,7 @@
         <input
           type="text"
           id="queryInput"
-          placeholder="Enter CNIC / Phone Number"
+          placeholder="Enter CNIC or Phone (e.g., 36401-7737144-9 or +92 304 7120451)..."
           class="w-full py-4 pl-5 pr-32 bg-slate-900/80 border border-slate-700/60 rounded-2xl backdrop-blur-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-xl"
           required
         />
@@ -110,6 +110,49 @@
     let turnstileWidgetId = null;
     let currentResults = [];
 
+    // --- INPUT PARSER & FORMATTER ---
+    function processInputQuery(val) {
+      let digits = val.replace(/\D/g, '');
+
+      // Strip leading country codes (92 or +92)
+      if (digits.startsWith('92') && digits.length >= 12) {
+        digits = digits.slice(2);
+      }
+      // Strip leading zeros (0304... -> 304...)
+      if (digits.startsWith('0')) {
+        digits = digits.slice(1);
+      }
+
+      // CNIC detection (13 digits)
+      if (digits.length === 13) {
+        return {
+          raw: digits,
+          formatted: `${digits.slice(0, 5)}-${digits.slice(5, 12)}-${digits.slice(12)}`
+        };
+      }
+
+      // Phone number detection (10 digits post-cleaning)
+      if (digits.length === 10) {
+        return {
+          raw: digits,
+          formatted: `+92 ${digits.slice(0, 3)} ${digits.slice(3)}`
+        };
+      }
+
+      // Fallback while user is typing
+      return { raw: digits || val, formatted: val };
+    }
+
+    const queryInput = document.getElementById('queryInput');
+
+    // Auto-format visually on blur / paste / change
+    queryInput.addEventListener('blur', () => {
+      if (queryInput.value.trim()) {
+        const { formatted } = processInputQuery(queryInput.value);
+        queryInput.value = formatted;
+      }
+    });
+
     async function initTurnstile() {
       try {
         const res = await fetch('/api/config');
@@ -139,7 +182,6 @@
     document.addEventListener('DOMContentLoaded', initTurnstile);
 
     const form = document.getElementById('searchForm');
-    const queryInput = document.getElementById('queryInput');
     const submitBtn = document.getElementById('submitBtn');
     const btnText = document.getElementById('btnText');
     const btnSpinner = document.getElementById('btnSpinner');
@@ -149,14 +191,18 @@
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const q = queryInput.value.trim();
-      if (!q) return;
+      const rawInput = queryInput.value.trim();
+      if (!rawInput) return;
 
       if (!turnstileToken) {
         errorAlert.textContent = "Please complete the security check first.";
         errorAlert.classList.remove('hidden');
         return;
       }
+
+      // Process input: get clean raw value for backend, and formatted value for display
+      const { raw, formatted } = processInputQuery(rawInput);
+      queryInput.value = formatted; // Set clean visual state in UI
 
       submitBtn.disabled = true;
       btnText.textContent = "Searching...";
@@ -167,7 +213,8 @@
       currentResults = [];
 
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(q)}&cf-turnstile-response=${encodeURIComponent(turnstileToken)}`);
+        // Send normalized 'raw' value to backend API
+        const response = await fetch(`/api/search?q=${encodeURIComponent(raw)}&cf-turnstile-response=${encodeURIComponent(turnstileToken)}`);
         const data = await response.json();
 
         if (!response.ok) throw new Error(data.error || 'Search failed.');
