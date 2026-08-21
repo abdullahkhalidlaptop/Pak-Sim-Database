@@ -4,12 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Database Lookup Portal</title>
-  
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/favicon.png" />
+
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Cloudflare Turnstile (Explicit Render Mode) -->
+  <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
-  <!-- jsPDF & AutoTable for PDF Export -->
+  <!-- jsPDF & AutoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
@@ -34,10 +37,10 @@
 </head>
 <body class="text-slate-100 flex flex-col items-center justify-start p-4 sm:p-8">
 
-  <!-- Header with Logo -->
+  <!-- Header & Logo -->
   <header class="w-full max-w-3xl text-center my-6 flex flex-col items-center">
     <div class="mb-4 p-3 bg-slate-900/80 border border-slate-800 rounded-2xl shadow-xl flex items-center justify-center">
-      <img src="logo.png" alt="Portal Logo" class="h-16 w-auto object-contain" onError="this.style.display='none'" />
+      <img src="/logo.png" alt="Portal Logo" class="h-16 w-auto object-contain" onError="this.style.display='none'" />
     </div>
     
     <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-widest mb-3">
@@ -73,7 +76,7 @@
         </button>
       </div>
 
-      <!-- Turnstile Container -->
+      <!-- Turnstile -->
       <div class="flex justify-center">
         <div id="turnstileContainer"></div>
       </div>
@@ -82,7 +85,7 @@
     <!-- Error Alert -->
     <div id="errorAlert" class="hidden p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center"></div>
 
-    <!-- Toolbar Options (CSV & PDF Downloads) -->
+    <!-- Export Toolbar -->
     <div id="exportToolbar" class="hidden flex justify-between items-center bg-slate-900/80 border border-slate-800 p-4 rounded-2xl backdrop-blur-md">
       <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Export Results</span>
       <div class="flex gap-3">
@@ -97,7 +100,7 @@
       </div>
     </div>
 
-    <!-- Results Container -->
+    <!-- Results Area -->
     <div id="resultsContainer" class="space-y-4"></div>
 
   </main>
@@ -107,14 +110,13 @@
     let turnstileWidgetId = null;
     let currentResults = [];
 
-    // Initialize Turnstile dynamically using Site Key fetched from /api/config
     async function initTurnstile() {
       try {
         const res = await fetch('/api/config');
         const data = await res.json();
 
         if (!res.ok || !data.siteKey) {
-          throw new Error(data.error || 'Failed to load Turnstile Site Key.');
+          throw new Error(data.error || 'Failed to load security site key.');
         }
 
         const checkInterval = setInterval(() => {
