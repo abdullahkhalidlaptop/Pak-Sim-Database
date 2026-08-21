@@ -6,7 +6,7 @@
   <title>Database Lookup Portal</title>
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="icon" type="image/png" href="/assets/icon.png" />
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -357,7 +357,36 @@
       `;
     }
 
-    // Mobile-compatible CSV download using Blob & Object URLs
+    // Universal Mobile & Desktop File Downloader
+    function triggerDownload(content, fileName, mimeType) {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // Data URI method works directly on iOS Safari & Mobile Chrome
+        const encodedData = `data:${mimeType};base64,` + btoa(unescape(encodeURIComponent(content)));
+        
+        const link = document.createElement("a");
+        link.href = encodedData;
+        link.download = fileName;
+        link.target = "_blank";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        // Standard Desktop Blob method
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    }
+
+    // CSV Download
     function downloadCSV() {
       if (!currentResults.length) return;
       const headers = ["Name", "Phone", "CNIC", "Address"];
@@ -369,19 +398,12 @@
       ]);
 
       const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\r\n");
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      
-      link.setAttribute("href", url);
-      link.setAttribute("download", `search_results_${Date.now()}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 100);
+      const fileName = `search_results_${Date.now()}.csv`;
+
+      triggerDownload(csvContent, fileName, 'text/csv');
     }
 
-    // Mobile-compatible PDF download using Blob & Object URLs
+    // PDF Download
     function downloadPDF() {
       if (!currentResults.length) return;
       const { jsPDF } = window.jspdf;
@@ -406,15 +428,13 @@
         headStyles: { fillColor: [79, 70, 229] }
       });
 
-      const blob = doc.output('blob');
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `search_results_${Date.now()}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 100);
+      const fileName = `search_results_${Date.now()}.pdf`;
+
+      try {
+        doc.save(fileName);
+      } catch (e) {
+        doc.output('dataurlnewwindow');
+      }
     }
 
     function escapeJs(str) {
