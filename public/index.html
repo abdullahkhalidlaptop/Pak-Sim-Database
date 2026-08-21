@@ -400,7 +400,7 @@
 
       // Added BOM \uFEFF so Excel correctly handles UTF-8 (Urdu/Arabic characters)
       const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\r\n");
-      const fileName = `search_results_${Date.now()}.csv`;
+      const fileName = `AK_Sim_DB_results_${Date.now()}.csv`;
 
       triggerDownload(csvContent, fileName, 'text/csv;charset=utf-8');
     }
@@ -430,7 +430,7 @@
         headStyles: { fillColor: [79, 70, 229] }
       });
 
-      const fileName = `search_results_${Date.now()}.pdf`;
+      const fileName = `AK_Sim_DB_results_${Date.now()}.pdf`;
       const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && typeof navigator.standalone !== 'undefined');
 
       if (isIos) {
